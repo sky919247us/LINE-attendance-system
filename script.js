@@ -1,3 +1,6 @@
+// =================================================================
+//                    前端腳本 (V2 - CORS Fetch 版)
+// =================================================================
 document.addEventListener('DOMContentLoaded', () => {
     // !! 重要 !! 請將此處替換為您在 Part 1 步驟 4 部署後取得的網址
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbwUZ5YYJU4Xv6qSEYyLZLM6RdDBVp0f_XO7gFnneIEQjs3cVh_Ntc4iOi0STM4-5HmQkw/exec';
@@ -17,42 +20,37 @@ document.addEventListener('DOMContentLoaded', () => {
     
     let userState = null;
 
-    // API 呼叫函式
-    function callApi(action, params = {}) {
-        return new Promise((resolve, reject) => {
-            const token = localStorage.getItem('sessionToken');
-            if (token) {
-                params.token = token;
+    // API 呼叫函式 (改為 Fetch)
+    async function callApi(action, params = {}) {
+        const url = new URL(GAS_URL);
+        url.searchParams.append('action', action);
+        
+        const token = localStorage.getItem('sessionToken');
+        if (token) {
+            params.token = token;
+        }
+        
+        for (const key in params) {
+            url.searchParams.append(key, params[key]);
+        }
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`網路回應錯誤: ${response.statusText}`);
             }
-            
-            const url = new URL(GAS_URL);
-            url.searchParams.append('action', action);
-            for (const key in params) {
-                url.searchParams.append(key, params[key]);
+            const data = await response.json();
+            if (data.ok) {
+                return data;
+            } else {
+                // 將後端回傳的錯誤訊息拋出
+                throw new Error(data.message || '後端回報了一個錯誤');
             }
-            url.searchParams.append('callback', 'jsonpCallback');
-
-            const script = document.createElement('script');
-            
-            window.jsonpCallback = (response) => {
-                document.body.removeChild(script);
-                delete window.jsonpCallback;
-                if (response.ok) {
-                    resolve(response);
-                } else {
-                    reject(response);
-                }
-            };
-
-            script.src = url.toString();
-            script.onerror = () => {
-                document.body.removeChild(script);
-                delete window.jsonpCallback;
-                reject({ code: 'NETWORK_ERROR', message: '網路連線失敗' });
-            };
-
-            document.body.appendChild(script);
-        });
+        } catch (error) {
+            // 捕捉網路層級或解析層級的錯誤
+            console.error('API 呼叫失敗:', error);
+            throw error;
+        }
     }
 
     // 顯示通知
@@ -73,19 +71,20 @@ document.addEventListener('DOMContentLoaded', () => {
             appHeader.style.display = 'flex';
             
             document.getElementById('user-name').textContent = userState.userName;
-            document.getElementById('profile-img').src = userState.picture || 'https://placehold.co/40x40'; // Fallback
+            document.getElementById('profile-img').src = userState.picture || 'https://placehold.co/40x40';
             document.getElementById('user-role').textContent = userState.role === 'Admin' ? '管理員' : '員工';
             
             if (userState.role === 'Admin') {
                 document.getElementById('admin-panel-toggle').style.display = 'block';
+            } else {
+                document.getElementById('admin-panel-toggle').style.display = 'none';
             }
             
-            // 填充店家選單
             storeSelector.innerHTML = '<option value="">-- 請選擇店家 --</option>';
             userState.allowedStores.forEach(storeId => {
                 const option = document.createElement('option');
                 option.value = storeId;
-                option.textContent = storeId; // 這裡可以擴充為顯示店家全名
+                option.textContent = storeId;
                 storeSelector.appendChild(option);
             });
 
@@ -111,7 +110,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             localStorage.removeItem('sessionToken');
             userState = null;
-            if (error.code !== 'SESSION_EXPIRED') {
+            if (error.message.includes('Session expired')) {
+                // Session 過期是正常情況，不用特別提示
+            } else {
                 showNotification(`登入驗證失敗: ${error.message}`, 'error');
             }
         }
@@ -130,33 +131,32 @@ document.addEventListener('DOMContentLoaded', () => {
         punchInBtn.disabled = true;
         punchOutBtn.disabled = true;
 
-        navigator.geolocation.getCurrentPosition(async (position) => {
-            const { latitude, longitude } = position.coords;
-            
-            try {
-                const response = await callApi('punch', {
-                    storeId,
-                    punchType,
-                    latitude,
-                    longitude,
-                    ip: 'N/A', // IP 獲取較複雜，暫不實作
-                    userAgent: navigator.userAgent
+        try {
+            const position = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
                 });
-                showNotification(response.message, 'success');
-            } catch (error) {
-                showNotification(`打卡失敗: ${error.message}`, 'error');
-            } finally {
-                punchInBtn.disabled = false;
-                punchOutBtn.disabled = false;
-            }
+            });
 
-        }, (error) => {
-            showNotification(`無法取得GPS位置: ${error.message}`, 'error');
+            const { latitude, longitude } = position.coords;
+            const response = await callApi('punch', {
+                storeId,
+                punchType,
+                latitude,
+                longitude,
+                userAgent: navigator.userAgent
+            });
+            showNotification(response.message, 'success');
+        } catch (error) {
+            showNotification(`打卡失敗: ${error.message}`, 'error');
+        } finally {
             punchInBtn.disabled = false;
             punchOutBtn.disabled = false;
-        });
+        }
     }
-
+    
     // 事件監聽
     loginBtn.addEventListener('click', async () => {
         try {
@@ -180,29 +180,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     punchInBtn.addEventListener('click', () => handlePunch('上班'));
     punchOutBtn.addEventListener('click', () => handlePunch('下班'));
-
-    adminToggleLink.addEventListener('click', (e) => {
-        e.preventDefault();
-        dashboardView.style.display = 'none';
-        adminView.style.display = 'block';
-    });
     
-    backToDashboard.addEventListener('click', (e) => {
-        e.preventDefault();
-        dashboardView.style.display = 'block';
-        adminView.style.display = 'none';
-    });
+    adminToggleLink.addEventListener('click', (e) => { e.preventDefault(); dashboardView.style.display = 'none'; adminView.style.display = 'block'; });
+    backToDashboard.addEventListener('click', (e) => { e.preventDefault(); dashboardView.style.display = 'block'; adminView.style.display = 'none'; });
     
-    // LINE 登入回呼處理
+    // 從 URL 取得 token (LINE 登入回呼後)
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('token')) {
-        localStorage.setItem('sessionToken', urlParams.get('token'));
-        // 清理 URL，避免 token 殘留
+    const tokenFromUrl = urlParams.get('token');
+    if (tokenFromUrl) {
+        localStorage.setItem('sessionToken', tokenFromUrl);
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 
     // 啟動應用
     checkUserSession();
-
 });
-
