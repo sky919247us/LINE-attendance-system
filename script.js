@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     // !! 重要 !! 請將此處替換為您在 Part 1 步驟 4 部署後取得的網址
-    const GAS_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbwUZ5YYJU4Xv6qSEYyLZLM6RdDBVp0f_XO7gFnneIEQjs3cVh_Ntc4iOi0STM4-5HmQkw/exec';
 
     // UI 元素
     const loginView = document.getElementById('login-view');
@@ -203,4 +203,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 啟動應用
     checkUserSession();
+
 });
