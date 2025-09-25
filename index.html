@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>考勤系統</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app-container">
+        <header id="app-header" class="app-header" style="display: none;">
+            <div class="user-info">
+                <img id="profile-img" src="" alt="Avatar" class="avatar">
+                <div>
+                    <p id="user-name" class="user-name-text"></p>
+                    <p id="user-role" class="user-role-text"></p>
+                </div>
+            </div>
+            <button id="logout-btn" class="btn-logout">登出</button>
+        </header>
+
+        <main id="main-content">
+            <div id="login-view" class="card fade-in">
+                <h1 class="title">歡迎使用考勤系統</h1>
+                <p id="login-status" class="subtitle">請登入以繼續</p>
+                <button id="login-btn" class="btn btn-primary btn-line">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="..." fill="white"/></svg> 使用 LINE 登入
+                </button>
+            </div>
+
+            <div id="dashboard-view" style="display: none;" class="fade-in">
+                <div class="card">
+                    <h2 class="card-title">打卡作業</h2>
+                    <select id="store-selector" class="input-field">
+                        <option value="">-- 請選擇店家 --</option>
+                    </select>
+                    <div id="punch-buttons" class="button-group" style="display: none;">
+                        <button id="punch-in-btn" class="btn btn-primary">上班打卡</button>
+                        <button id="punch-out-btn" class="btn btn-secondary">下班打卡</button>
+                    </div>
+                </div>
+                 <div id="admin-panel-toggle" style="display:none;" class="card-link">
+                    <a href="#" id="admin-toggle-link">進入管理後台</a>
+                </div>
+            </div>
+
+            <div id="admin-view" style="display: none;" class="fade-in">
+                <a href="#" id="back-to-dashboard" class="back-link">← 返回儀表板</a>
+                <h2 class="view-title">管理後台</h2>
+                </div>
+        </main>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
